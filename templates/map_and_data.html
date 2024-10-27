@@ -1,0 +1,28 @@
+<div id="map" class="h-96 w-full mb-4">
+    {{ map | safe }}
+</div>
+<div class="overflow-x-auto">
+    <table class="min-w-full bg-white">
+        <thead class="bg-gray-200">
+            <tr>
+                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Bike ID</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Latitude</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Longitude</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Speed (km/h)</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Last Updated</th>
+            </tr>
+        </thead>
+        <tbody id="bikeData">
+            {% for bike_id, bike_info in bikes.items() %}
+                <tr class="{% if loop.index % 2 == 0 %}bg-gray-50{% endif %}">
+                    <td class="px-4 py-2 text-sm text-gray-700">{{ bike_id }}</td>
+                    <td class="px-4 py-2 text-sm text-gray-700">{{ bike_info.latitude }}</td>
+                    <td class="px-4 py-2 text-sm text-gray-700">{{ bike_info.longitude }}</td>
+                    <td class="px-4 py-2 text-sm text-gray-700">{{ bike_info.speed }}</td>
+                    <td class="px-4 py-2 text-sm text-gray-700">{{ bike_info.timestamp }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
