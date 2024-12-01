@@ -1,0 +1,36 @@
+<div class="mt-4">
+    <h2 class="text-xl font-semibold mb-2">Bike Details</h2>
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white shadow-md rounded-lg">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-4 py-2">Bike Name</th>
+                    <th class="px-4 py-2">Type</th>
+                    <th class="px-4 py-2">Location</th>
+                    <th class="px-4 py-2">Speed</th>
+                    <th class="px-4 py-2">Battery</th>
+                    <th class="px-4 py-2">Last Maintenance</th>
+                    <th class="px-4 py-2">Last Update</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bike_id, info in bikes.items() %}
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ info.name }}</td>
+                    <td class="px-4 py-2">{{ info.type }}</td>
+                    <td class="px-4 py-2">{{ info.latitude }}, {{ info.longitude }}</td>
+                    <td class="px-4 py-2">{{ info.speed }} km/h</td>
+                    <td class="px-4 py-2">{{ info.battery }}%</td>
+                    <td class="px-4 py-2">{{ info.last_maintenance }}</td>
+                    <td class="px-4 py-2">{{ info.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Update markers on the map
+    updateMarkers({{ bikes | tojson | safe }});
+</script>
