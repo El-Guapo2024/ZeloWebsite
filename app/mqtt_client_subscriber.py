@@ -12,7 +12,7 @@ def on_message(client, userdata, message):
 
 
 # Create client instance
-client = mqtt.Client(client_id="publisher_client_id")
+client = mqtt.Client(client_id="subscriber_client_id")
 
 # Set callbacks
 client.on_connect = on_connect
@@ -29,8 +29,9 @@ client.loop_start()
 # Wait for connection to establish
 time.sleep(1)
 
-# Publish a message
-client.publish("my/topic", "Hello MQTT!")
+
+# Subscribe to a topic
+client.subscribe("my/topic")
 
 # Keep the script running
 try:
