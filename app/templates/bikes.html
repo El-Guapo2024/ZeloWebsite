@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>All Bikes</h2>
+
+<div id="bike-list">
+    {% include "/partials/_bikes_partial.html" %}
+</div>
+
+<div id="bike-detail">
+    <!-- Bike details will be dynamically loaded here -->
+</div>
+{% endblock %}

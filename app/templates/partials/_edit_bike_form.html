@@ -1,0 +1,27 @@
+<form hx-post="/bikes/{{ bike.bike_id }}/update" hx-target="#bike-detail" hx-swap="innerHTML" hx-on:afterRequest="htmx.ajax('GET','/bikes', {target:'#bike-list'})">
+    <label>Model Name:</label><br>
+    <input type="text" name="model_name" value="{{ bike.model_name }}" required><br>
+
+    <label>Purchase Date:</label><br>
+    <input type="date" name="purchase_date" value="{{ bike.purchase_date }}" required><br>
+
+    <label>Last Maintenance:</label><br>
+    <input type="date" name="last_maintenance" value="{{ bike.last_maintenance }}"><br>
+
+    <label>Total Miles Driven:</label><br>
+    <input type="number" name="total_miles_driven" value="{{ bike.total_miles_driven }}"><br>
+
+    <label>Status:</label><br>
+    <select name="status">
+        <option value="active" {% if bike.status == 'active' %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if bike.status == 'inactive' %}selected{% endif %}>Inactive</option>
+    </select><br>
+
+    <!-- Submit Button -->
+    <button type="submit">Save</button>
+
+    <!-- Cancel Button -->
+    <button hx-get="/bikes/{{ bike.bike_id }}" hx-target="#bike-detail" hx-swap="innerHTML">
+        Cancel
+    </button>
+</form>

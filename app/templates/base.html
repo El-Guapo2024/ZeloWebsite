@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.0/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body>
+    <header>
+        <h1>ZELO Bike Management System</h1>
+        <nav>
+            <a href="/" hx-get="/" hx-target="body" hx-swap="outerHTML">Home</a> |
+            <a href="/bikes/add" hx-get="/bikes/add" hx-target="#content" hx-swap="innerHTML">Add Bike</a> |
+            <a href="/bikes/search" hx-get="/bikes/search" hx-target="#content" hx-swap="innerHTML">Search Bikes</a>
+        </nav>
+        <hr>
+    </header>
+
+    <main id="content">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        <hr>
+        <p>&copy; 2024 Bike Management System</p>
+    </footer>
+</body>
+</html>

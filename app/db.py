@@ -1,88 +1,145 @@
-import sqlite3 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from datetime import datetime 
-import sys 
+from app.models import Bike, Base
 
-def init_db():
-    print("\n === Starting Database Initialization ===",flush=True)
-    try: 
-        print('1. Connecting to database ...')
-        conn = sqlite3.connect('bikes.db')
-        cursor = conn.cursor()
-        print(" ✓ Connected successfully")
-        # Create Bikes table 
-        print("\n2. Creating Bikes table...")
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS Bikes (
-            bike_id INTEGER PRIMARY KEY, 
-            model_name VARCHAR(50),
-            purchase_date DATE,
-            last_maintenance DATE,
-            total_miles_driven FLOAT,
-            status VARCHAR(20)                      
-        )
-        ''')
-            # Create sample data if table is empty
+class DatabaseManager:
+    def __init__(self, database_url):
+        """
+        Iniitialize the Database Manager with a specific
+        database URL
+        """
 
-        conn.commit() # Commit table to creation first 
-        print("   ✓ Table created/verified")
+        self.engine = create_engine(database_url, echo=False)
+        self.Session = sessionmaker(bind=self.engine)
+        self.session = self.Session()
 
-        print("\n3. Checking if table is empty...")
-        cursor.execute('SELECT COUNT(*) FROM Bikes')
-        count = cursor.fetchone()[0]
-        print(f"   ✓ Current bike count: {count}")
-        if count == 0:
-            print("\n4. Inserting sample data...")
-            sample_bikes = [
-                ('Mountain Bike 1', '2024-01-01', '2024-02-15', 150.5, 'active'),
-                ('City Bike 1', '2024-01-15', '2024-02-10', 120.3, 'active'),
-                ('Electric Bike 1', '2024-02-01', '2024-02-20', 80.7, 'active')
-            ]
-            cursor.executemany('''
-                INSERT INTO Bikes (model_name, purchase_date, last_maintenance, total_miles_driven, status)
-                VALUES (?, ?, ?, ?, ?)
-            ''', sample_bikes)
 
-            conn.commit()
-            print("   ✓ Sample data inserted")
-        print("\n=== Database Initialization Complete ===")
-    except Exception as e :
-        print(f"\n❌ ERROR: {str(e)}")
-        print(f"Error Type: {type(e).__name__}")
-        raise e
-    finally:
-        conn.close()
-        print("\nDatabase connection closed")
+    def init_db(self):
+        """
+        Innitalize the database by creating all tables.
+        """
+        Base.metadata.create_all(self.engine)
 
-def get_db():
-    conn = sqlite3.connect('bikes.db')
-    conn.row_factory = sqlite3.Row
+    def add_bike(self, bike):
+        """
+        Add a new bike to the database 
+        """
+        try:
+            self.session.add(bike)
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            raise e
 
-    return conn 
 
-def get_all_bikes():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM Bikes WHERE status = "active"')
-    bikes = cursor.fetchall()
-    conn.close()
-    return bikes 
-
-def get_bike(bike_id):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM Bikes WHERE bike_id = ?',(bike_id,))
-    bike = cursor.fetchone()
-    conn.close()
-    return bike 
-
-def update_bike_maintenance(bike_id):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('''
-        UPDATE Bikes
-        SET last_maintenance = ? 
-        WHERE bike_id = ? 
-''',(datetime.now().strftime('%Y-%m-%d'), bike_id))
+    def get_all_bikes(self):
+        """
+        Fetch all bikes 
+        """
+        return self.session.query(Bike).all()
     
-    conn.commit()
-    conn.close()
+    def get_all_active_bikes(self):
+        """
+        Fetch all actice bikes 
+        """
+        return self.session.query(Bike).filter_by(status='active').all()
+    
+    def get_bike_by_id(self, bike_id):
+        """
+        Fetch a bike by its ID.
+        """
+        return self.session.query(Bike).filter_by(bike_id=bike_id).first()
+    
+    def delete_bikes(self, bike_ids):
+        """
+        Delete bike from the database based on a list of bike IDs. 
+        """
+
+        if not bike_ids:
+            return # Nohthig happens 
+
+        try:
+            self.session.query(Bike).filter(Bike.bike_id.in_(bike_ids)).delete(synchronize_session=False)
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def update_bike_maintenance(self, bike_id):
+        """
+        Update the maintenance date of a bike to today.
+        """
+        bike = self.get_bike_by_id(bike_id)
+        if not bike:
+            raise ValueError(f"Bike with ID {bike_id} does not exist.")
+        
+        try: 
+            bike.last_maintenance = datetime.now().date()
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+
+    def update_bike(self, bike_id, **kwargs):
+        """
+        Update the data for the bike
+        """
+        bike = self.get_bike_by_id(bike_id)
+
+        if not bike: 
+            raise ValueError(f"Bike with ID {bike_id} does not exists")
+        try: 
+            for key, value in kwargs.items():
+                if hasattr(bike, key):
+                    setattr(bike, key, value)
+        
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+
+    def get_bikes_by_params(self, params):
+        """
+        Fetch bikes from the database based on dynamic parametrs
+
+        :param params: A dictionary containing filter conditions.
+            Example: {'status':'active', 'model_name': 'Mountain Bike'}
+
+            Supports operators like {'total_miles_driven__gt': 100}
+        :return: A list of Bike matching the query. 
+        """
+
+        query = self.session.query(Bike)
+
+        for key, value in params.items():
+            if '__' in key: # Handle operators like __gt ,__lt
+                field, operator = key.split('__')
+                column = getattr(Bike, field)
+                if operator == 'gt': #Greater than 
+                    query = query.filter(column > value )
+                elif operator == 'lt':# Less than 
+                    query = query.filter(column < value)
+                elif operator == 'gte': 
+                    query = query.filter(column >= value)
+                elif operator == 'lte':
+                    query = query.filter(column <= value)
+                elif operator == 'ne':
+                    query = query.filter(column != value)
+                elif operator == 'like':
+                    query = query.filter(column.like(f"%{value}%"))
+            else:
+                column = getattr(Bike, key)
+                query = query.filter(column == value)
+
+        return query.all()
+
+    def close(self):
+        """
+        Close the session and engine connection.
+        """
+        self.session.close()
+        self.engine.dispose()
+        

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Search Results</h2>
+
+<div id="search-results">
+    {% include "/partials/_search_results_partial.html" %}
+</div>
+
+<a href="/" hx-get="/" hx-target="#content" hx-swap="innerHTML">Back to All Bikes</a>
+{% endblock %}

@@ -1,0 +1,60 @@
+<style>
+    .selectable-button {
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        padding: 10px;
+        cursor: pointer;
+        margin: 5px;
+    }
+
+    .selected {
+        background-color: #007bff;
+        color: white;
+    }
+</style>
+
+
+<form id="multi-select-form" hx-post="/update_bike_query" hx-trigger="click">
+    <div>
+        {% for bike in bikes %}
+        <button type="button" class="selectable-button" data-value="Option1">
+            Option 1
+        </button>
+        {% endfor %}
+    </div>
+</form>
+
+<div>
+    <!-- Filter Options-->
+    <form hx-post="/update_bike_query" hx-target="#bike_list">
+        <label for="filter">Filter Bike ID:</label>
+        <select name="filter" id="filter">
+            <option value="all">All</option>
+            <option value="greater">Greater</option>
+            <option value="less">Less</option>
+        </select>
+        <input type="number" name="id_value" placeholder="Enter ID" min="1">
+        <!-- Filter Button -->
+        <button type="submit">Apply All</button>
+    </form>
+    <!-- Scrollable Box for Bike List -->
+    <div id="bike_list" style="height: 200px; overflow-y: scroll; border: 1px solid #ccc; margin-top: 10px;">
+    </div>
+</div>
+
+
+<script>
+    document.querySelectorAll('.selectable-button').forEach(button => {
+        button.addEventListener('click', function() {
+            this.classList.toggle('selected');
+            updateSelectedOptions();
+        });
+    });
+
+    function updateSelectedOptions() {
+        const selected = Array.from(document.querySelectorAll('.selectable-button.selected'))
+            .map(button => button.getAttribute('data-value'));
+        document.getElementById('selectedOptions').value = selected.join(',');
+    }
+</script>
+

@@ -1,20 +1,27 @@
-# from app import db
-# from datetime import datetime
+from sqlalchemy import Column, Integer, String, Float, Date
+from sqlalchemy.ext.declarative import declarative_base
+# Define Bike Model 
 
+Base = declarative_base()
 
-# class Bike(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String(50), nullable=False)
-#     type = db.Column(db.String(20))
-#     last_maintenance = db.Column(db.DateTime)
-#     status = db.Column(db.String(20), default='active')
+class Bike(Base):
+    __tablename__ = 'Bikes'
 
-#     def to_dict(self):
-#         return {
-#             'id': self.id,
-#             'name': self.name,
-#             'type': self.type,
-#             'last_maintenance': self.last_maintenance.strftime('%Y-%m-%d') if self.last_maintenance else None,
-#             'status': self.status
-#         }
-# TODO use model method to interface with the databae 
+    bike_id = Column(Integer, primary_key=True)
+    model_name = Column(String(50))
+    purchase_date = Column(Date)
+    last_maintenance = Column(Date)
+    total_miles_driven = Column(Float)
+    status = Column(String(20))
+
+    def __repr__(self):
+        return(
+        f"<Bike(bike_id={self.bike_id}, "
+        f"model_name='{self.model_name}', "
+        f"purchase_data='{self.purchase_date}',"
+        f"last_maintenance='{self.last_maintenance}',"
+        f"total_miles_driven='{self.total_miles_driven}',"
+        f"status='{self.status}'"
+        )
+    
+
