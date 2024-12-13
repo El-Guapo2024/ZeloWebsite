@@ -3,7 +3,7 @@
 {% block content %}
 <h2>All Bikes</h2>
 
-<div id="bike-list">
+<div id="bike-list" hx-get="/bikes" hx-trigger="refreshBikeList from:body" hx-swap="innerHTML">
     {% include "/partials/_bikes_partial.html" %}
 </div>
 

@@ -1,4 +1,4 @@
-<form hx-post="/bikes/{{ bike.bike_id }}/update" hx-target="#bike-detail" hx-swap="innerHTML" hx-on:afterRequest="htmx.ajax('GET','/bikes', {target:'#bike-list'})">
+<form hx-post="/bikes/{{ bike.bike_id }}/update"  hx-swap="none">
     <label>Model Name:</label><br>
     <input type="text" name="model_name" value="{{ bike.model_name }}" required><br>
 
@@ -18,10 +18,12 @@
     </select><br>
 
     <!-- Submit Button -->
-    <button type="submit">Save</button>
-
-    <!-- Cancel Button -->
-    <button hx-get="/bikes/{{ bike.bike_id }}" hx-target="#bike-detail" hx-swap="innerHTML">
-        Cancel
+    <button type="submit">Save Data</button>
+    <!-- Delete Button -->
+    <button hx-delete="/bikes/{{ bike.bike_id }}/delete"  hx-target="#bike-detail" hx-swap="outerHTML" >
+        Delete Bike
+    </button>
+    <button onclick="document.getElementById('bike-detail').innerHTML='';">
+        Close
     </button>
 </form>

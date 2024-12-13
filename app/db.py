@@ -57,10 +57,9 @@ class DatabaseManager:
         """
 
         if not bike_ids:
-            return # Nohthig happens 
-
+            return # Nothing happens 
         try:
-            self.session.query(Bike).filter(Bike.bike_id.in_(bike_ids)).delete(synchronize_session=False)
+            self.session.query(Bike).filter(Bike.bike_id.in_(bike_ids)).delete()
             self.session.commit()
         except Exception as e:
             self.session.rollback()

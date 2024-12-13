@@ -1,9 +1,4 @@
-<style>
-    a {
-        color: blue;
-        text-decoration: underline;
-    }
-</style>
+
 
 <ul>
     {% for bike in bikes %}
@@ -13,10 +8,10 @@
             - {{bike.purchase_date}} - {{bike.last_maintenance}}
             - {{bike.total_miles_driven}} - {{bike.status}}
         </p>
-        <button hx-get="/bikes/{{ bike.bike_id}}" hx-target="#bike-detail" hx-swap="innerHTML">
+        <button hx-get="/bikes/{{ bike.bike_id}}/edit" hx-target="#bike-detail" hx-swap="innerHTML">
             Edit
         </button>
-        <button hx-get="/bikes/{{ bike.bike_id}}/maintenance" hx-target="#bike-list" hx-swap="innerHTML">
+        <button hx-post="/bikes/{{ bike.bike_id}}/maintenance" hx-target="#bike-list" hx-swap="innerHTML">
             Update Maintenance
         </button>
     </li>
