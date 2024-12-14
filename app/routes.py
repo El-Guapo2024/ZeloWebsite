@@ -49,7 +49,7 @@ def post_bikes_add():
     # Add and commit new bike to the database
     db_manager.add_bike(new_bike)
     # Return a JSON response with HX-Trigger header
-    response = jsonify(success=True)
+    response = make_response('add_bike.html', 200)
     response.headers['HX-Trigger'] = 'refreshBikeList'
     return response
 
