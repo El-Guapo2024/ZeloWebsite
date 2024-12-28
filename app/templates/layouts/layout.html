@@ -8,26 +8,27 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
 </head>
-<body>
+<body hx-boost="true" hx-on="htmx:load">
     <header>
         <h1>ZELO Bike Management System</h1>
         <nav>
-            <a href="/" hx-get="/" hx-target="body" hx-swap="outerHTML">Home</a> |
-            <a href="/bikes/add" hx-get="/bikes/add" hx-target="#content" hx-swap="innerHTML">Add Bike</a> |
-            <a href="/bikes/search" hx-get="/bikes/search" hx-target="#content" hx-swap="innerHTML">Search Bikes</a>
+            <a href="/">Home</a> |
+            <a href="/bikes/add">Add Bike</a> |
+            <a href="/bikes/bike_map">Search Bikes</a>
         </nav>
         <hr>
     </header>
 
-    <main id="content">
-        {% block content %}
-        {% endblock %}
-    </main>
+    {% block content %}
+    {% endblock %}
 
     <footer>
         <hr>
         <p>&copy; 2024 Bike Management System</p>
     </footer>
+
+    <script src="/static/js/bike_map/map.js"></script> <!-- Include the map.js file -->
 </body>
 </html>

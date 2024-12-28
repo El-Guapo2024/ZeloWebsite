@@ -1,0 +1,14 @@
+{% extends "layouts/layout.html" %}
+
+{% block content %}
+<main>
+    <h2>Bike Tracker</h2>
+    <div class="scrollable-list">
+        {% include "/partials/bike_map/scrollable_list.html" %}
+    </div>
+    {% include "/partials/bike_map/map.html" %}
+</main>
+{% endblock %}
+
+
+

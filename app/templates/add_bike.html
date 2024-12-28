@@ -1,41 +1,12 @@
-<form hx-post="/bikes/add" hx-swap="outerHTML">
-    <label>Model Name:</label><br>
-    <input type="text" name="model_name" required><br>
+{% extends "layouts/layout.html" %}
 
-    <label>Purchase Date:</label><br>
-    <input type="date" name="purchase_date" required><br>
-    <label>Last Maintenance Data:</label><br>
-    <input type="date" name="last_maintenance" required><br>
-    <label>Status:</label><br>
-    <select name="status">
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-    </select><br>
+{% block content %}
+<main>
+    <h2>Add Bikes</h2>
+    <div id="add-bike-form">
+        {% include "/partials/add_bike/add_bike_form.html" %}
+    </div>
+</main>
+{% endblock %}
 
-    <label>Total Miles Driven:</label><br>
-    <input type="number" name="total_miles_driven"><br>
 
-    <button type="submit">Add Bike</button>
-</form>
-
-<div id="popup-message" style="display:none; position:fixed; bottom:10px; right:10px; background-color:#4CAF50; color:white; padding:10px; border-radius:5px;">
-    Bike added successfully!
-</div>
-
-<script>
-    function clearFormAndShowPopup() {
-        // Clear form fields
-        console.log("clearFormAndShowPopup function triggered");
-        const form = document.querySelector('form');
-        form.reset();
-
-        // Show pop-up message
-        const popup = document.getElementById('popup-message');
-        popup.style.display = 'block';
-
-        // Hide the pop-up after 3 seconds
-        setTimeout(() => {
-            popup.style.display = 'none';
-        }, 3000);
-    }
-</script>

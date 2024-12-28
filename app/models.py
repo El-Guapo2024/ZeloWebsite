@@ -24,4 +24,13 @@ class Bike(Base):
         f"status='{self.status}'"
         )
     
+class BikeData:
+    def __init__(self, bike_id, latitude, longitude, timestamp, speed, satellites):
+        self.bike_id = bike_id
+        self.latitude = latitude 
+        self.longitude = longitude 
+        self.timestamp = timestamp
+        self.speed = speed
+        self.satellites = satellites
+
 

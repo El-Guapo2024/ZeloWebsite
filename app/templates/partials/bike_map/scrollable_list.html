@@ -1,0 +1,47 @@
+<style>
+    .scrollable-checkboxes {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 5px;
+    }
+    .checkbox-item {
+            display: block;
+            margin-bottom: 5px;
+    }
+</style>
+
+<div class="scrollable-checkboxes">
+    {% for bike in bikes %}
+    <label class="checkbox-item">
+        <input type="checkbox" name="bikes" value="{{bike.bike_id}}"> 
+        {{ bike.model_name}}
+    </label>
+    {% endfor %}
+</div>
+
+   <!-- Filter Button -->
+<button 
+   id="filter-button"
+   hx-post="select_bikes"
+   hx-vals="js:{selected_bike: getSelectedBikes()}"
+   hx-target="#bubble"
+   hx-swap="innerHTML">
+   Filter
+</button>
+
+<div id="bubble"></div>
+
+<script>
+function getSelectedBikes(){
+    // Get all selected checkboxes
+    const selectedBikes = Array.from(document.querySelectorAll("input[name=bikes]:checked"))
+        .map(checkbox => checkbox.value);
+
+    console.log("Selected Bikes", selectedBikes)
+
+    return selectedBikes
+}
+</script>
+
+<!-- Add Filter bubble -->

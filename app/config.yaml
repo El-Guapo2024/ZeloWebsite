@@ -1,0 +1,5 @@
+MQTT:
+  broker_address: "mqtt.eclipseprojects.io"
+  port: 1883
+  client_id: "subscriber_client"
+  bike_ids: [0,1,2,3,4,5,6,7,8,9]

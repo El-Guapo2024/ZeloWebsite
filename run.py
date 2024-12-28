@@ -1,5 +1,7 @@
-from app import app, db
+from app import create_app
+
 
 if __name__ == "__main__":
-    print("=== Starting Application ===", flush=True)
+    #Create and run the Flask app 
+    app = create_app()
     app.run(debug=True)

@@ -20,10 +20,11 @@
     <!-- Submit Button -->
     <button type="submit">Save Data</button>
     <!-- Delete Button -->
-    <button hx-delete="/bikes/{{ bike.bike_id }}/delete"  hx-target="#bike-detail" hx-swap="outerHTML" >
+    <button hx-delete="/bikes/{{ bike.bike_id }}/delete"  hx-target="#bike-detail" hx-swap="innerHTML" >
         Delete Bike
     </button>
     <button onclick="document.getElementById('bike-detail').innerHTML='';">
         Close
     </button>
 </form>
+
