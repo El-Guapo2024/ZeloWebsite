@@ -1,7 +1,8 @@
 from app import create_app
 
+# Create the Flask app and database manager
+app = create_app()
 
 if __name__ == "__main__":
-    #Create and run the Flask app 
-    app = create_app()
-    app.run(debug=True)
+    # Run the Flask app
+    app.run(host='0.0.0.0', port=5000)

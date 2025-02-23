@@ -1,4 +1,3 @@
-from flask_caching import Cache 
 
 class CacheManager:
     def __init__(self, cache_instance):

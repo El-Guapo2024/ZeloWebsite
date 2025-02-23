@@ -1,0 +1,30 @@
+name: Deploy to Linode
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up SSH Key
+      run: |
+        mkdir -p ~/.ssh/
+        echo "${{ secrets.LINODE_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        cat ~/.ssh/id_rsa
+
+    - name: Add Linode to Known Hosts
+      run: ssh-keyscan 172.234.244.143 >> ~/.ssh/known_hosts
+
+    - name: Copy deploy.sh
+      run: scp deploy.sh ${secrets.LINODE_SSH_USER}@${secrets.LINODE_IP}:/home/${secrets.LINODE_SSH_USER}/deploy.sh
+
+    - name: Execute deploy.sh
+      run: ssh ${secrets.LINODE_SSH_USER}@${secrets.LINODE_IP} 'chmod +x /home/${secrets.LINODE_SSH_USER}/deploy.sh && /home/${secrets.LINODE_SSH_USER}/deploy.sh'

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web_prod:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:5000"  
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - db_prod
+    networks:
+      - flask_prod_network
+
+networks:
+  flask_prod_network:
+    driver: bridge
+

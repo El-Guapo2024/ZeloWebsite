@@ -1,5 +1,6 @@
 mqtt_evn/
-
 app/__pycache__
 tests/__pycache__
+.env
+.env.production
 

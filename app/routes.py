@@ -3,12 +3,11 @@ from flask import (
     current_app, jsonify, make_response
 )
 from app.models import Bike
-from app.db import DatabaseManager
 from datetime import datetime
 from app.utils import get_selected_bikes_to_json
 # Create a Blueprint for bike-related routes
 bike_routes = Blueprint('bike_routes', __name__)
-db_manager = DatabaseManager(database_url='sqlite:///bikes.db')
+
 
 selected_bikes = []
 is_filter_on = False 
@@ -19,6 +18,8 @@ def index():
     Initial Home Page Start
     Will Load Bike List
     """
+    # Access db_manager from the app context
+    db_manager = current_app.db_manager
     bikes = db_manager.get_all_bikes()
     return render_template('index.html', bikes=bikes)
 
@@ -27,12 +28,16 @@ def get_bike_list():
     """
     Return only the bike list as partial template
     """
+    # Access db_manager from the app context
+    db_manager = current_app.db_manager
     bikes = db_manager.get_all_bikes()
     return render_template('partials/index/bikes_list.html', bikes=bikes)
 
 @bike_routes.route('/bikes/<int:bike_id>/edit_form', methods=['GET'])
 def edit_bike(bike_id):
     """Fetch the edit form for a specific bike."""
+    # Access db_manager from the app context
+    db_manager = current_app.db_manager
     bike = db_manager.get_bike_by_id(bike_id)
     if not bike:
         return render_template('error.html', message=f'Bike with ID {bike_id} not found'), 404
@@ -41,6 +46,8 @@ def edit_bike(bike_id):
 @bike_routes.route('/bikes/<int:bike_id>/update_maintenance', methods=['POST'])
 def update_bike_maintenance(bike_id):
     """Update_bike maintenance date to today"""
+    # Access db_manager from the app context
+    db_manager = current_app.db_manager
     db_manager.update_bike_maintenance(bike_id)
     # For now we return an empty response 
     # in the future we can better behaviour here
@@ -52,6 +59,8 @@ def update_bike_maintenance(bike_id):
 @bike_routes.route('/bikes/<int:bike_id>/update', methods=['POST'])
 def update_bike(bike_id):
     """Update a specific bike's details."""
+    # Access db_manager from the app context
+    db_manager = current_app.db_manager
     data = request.form
     db_manager.update_bike(
         bike_id=bike_id,
@@ -69,7 +78,8 @@ def update_bike(bike_id):
 @bike_routes.route('/bikes/<int:bike_id>/delete', methods=['DELETE'])
 def delete_bike(bike_id):
     "Delete Specific bike"
-
+    # Access db_manager from the app context
+    db_manager = current_app.db_manager
     db_manager.delete_bikes([bike_id])
 
     # Empty the div on delete and HX-Trigger header
@@ -86,6 +96,8 @@ def get_bikes_add():
 @bike_routes.route('/bikes/add_form', methods=['POST'])
 def post_bikes_add_form():
     """Add a new bike, and reload form"""
+    # Access db_manager from the app context
+    db_manager = current_app.db_manager
     data = request.form
 
     # Create a new Bike instance with form data
@@ -106,12 +118,13 @@ def post_bikes_add_form():
 @bike_routes.route('/bikes/bike_map', methods=['GET'])
 def get_bike_map():
     """Search bikes based on parameters."""
+    # Access db_manager from the app context
+    db_manager = current_app.db_manager
     bikes = db_manager.get_all_bikes()
     return render_template('bike_map.html', bikes=bikes)
 
 @bike_routes.route('/bikes/select_bikes', methods=['POST'])
 def select_bikes():
-
     data = request.form.getlist("selected_bike")
     current_app.cache_manager.set_selected_bikes(data)
     current_app.cache_manager.set_active_searching(True)

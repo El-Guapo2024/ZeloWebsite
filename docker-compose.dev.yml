@@ -1,0 +1,18 @@
+services:
+  web_dev:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:5000"
+    volumes:
+      - .:/app
+    networks:
+      - flask_dev_network
+    env_file:
+      - .env.dev
+
+networks:
+  flask_dev_network:
+    driver: bridge
+
