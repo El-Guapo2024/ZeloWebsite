@@ -17,7 +17,7 @@ jobs:
         with:
           host: ${{ secrets.LINODE_IP }}
           username: ${{ secrets.LINODE_SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
+          key: ${{ secrets.LINODE_SSH_KEY }}
           script: |
             mkdir -p /home/${{ secrets.LINODE_SSH_USER }}/.github/workflows
 
@@ -33,7 +33,7 @@ jobs:
         with:
           host: ${{ secrets.LINODE_IP }}
           username: ${{ secrets.LINODE_SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
+          key: ${{ secrets.LINODE_SSH_KEY }}
           script: |
             chmod +x /home/${{ secrets.LINODE_SSH_USER }}/deploy.sh
             /home/${{ secrets.LINODE_SSH_USER }}/deploy.sh
