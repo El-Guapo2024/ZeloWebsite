@@ -7,23 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Executing remote SSH commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.LINODE_IP }}
-          username: ${{ secrets.LINODE_SSH_USER }}
-          key: ${{ secrets.LINODE_SSH_KEY }}
-          script: |
-            mkdir -p /home/${{ secrets.LINODE_SSH_USER }}/.github/workflows
-
   deploy:
     runs-on: ubuntu-latest
-    needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -36,14 +21,16 @@ jobs:
           echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env.prod
           echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env.prod
 
-      - name: Copy env file to Linode
+      - name: Copy application files to Linode
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.LINODE_IP }}
           username: ${{ secrets.LINODE_SSH_USER }}
           key: ${{ secrets.LINODE_SSH_KEY }}
-          source: ".env.prod"
+          source: ".,!venv,!.git,!__pycache__,!*.pyc"
           target: "/home/${{ secrets.LINODE_SSH_USER }}/zelo_website"
+          rm: true
+          strip_components: 0
 
       - name: Deploy to Linode
         uses: appleboy/ssh-action@master
