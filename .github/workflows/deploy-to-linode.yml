@@ -32,7 +32,7 @@ jobs:
           rm: true
           strip_components: 0
 
-      - name: Deploy application
+      - name: Fix Docker permissions and deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.LINODE_IP }}
@@ -41,9 +41,29 @@ jobs:
           script: |
             # Move to project directory
             cd /home/${{ secrets.LINODE_SSH_USER }}/zelo_website
+            
             # Setup environment
             mv .env.prod .env
             chmod +x deploy.sh
+            
+            # Fix Docker socket permissions
+            if [ ! -S /var/run/docker.sock ]; then
+              echo "Docker socket does not exist. Starting Docker daemon..."
+              sudo systemctl start docker
+            fi
+            
+            # Add current user to docker group and fix socket permissions
+            sudo usermod -aG docker $USER
+            sudo chown root:docker /var/run/docker.sock
+            sudo chmod 666 /var/run/docker.sock
+            
+            # Ensure we can access Docker
+            sudo systemctl restart docker
+            
+            # Wait for Docker to be ready
+            sleep 5
+            
             # Run deployment
+            docker ps >/dev/null 2>&1 || { echo "Docker is not accessible. Please check permissions."; exit 1; }
             docker-compose down --remove-orphans || true
             docker-compose up --build -d
