@@ -10,5 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code
 COPY . .
 
+EXPOSE 5000
+
 # Command to run the Flask app
-CMD ["gunicorn", "-w", "4" , "-b", "0.0.0.0:8000", "app:create_app()"]
+CMD ["gunicorn", "-w", "4" , "-b", "0.0.0.0:5000", "app:create_app()"]

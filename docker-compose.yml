@@ -15,7 +15,21 @@ services:
     networks:
       - flask_prod_network
 
+  db_prod:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - flask_prod_network
+
 networks:
   flask_prod_network:
     driver: bridge
+
+volumes:
+  postgres_data:
 

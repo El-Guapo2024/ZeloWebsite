@@ -7,44 +7,94 @@ LINODE_IP="172.234.244.143" # Replace with your Linode IP
 REMOTE_PATH="/home/$LINODE_SSH_USER/zelo_website"
 LOCAL_PATH="."
 
-# Add to Known Hosts
-mkdir -p ~/.ssh
-ssh-keyscan $LINODE_IP >> ~/.ssh/known_hosts
+# Determine if script is running locally or on remote server
+IS_LOCAL=false
+if [ -z "$GITHUB_ACTIONS" ]; then
+    IS_LOCAL=true
+fi
 
-# Function to copy files
-copy_files() {
-  echo "Copying files to Linode..."
-  scp -r "$LOCAL_PATH" "$LINODE_SSH_USER@$LINODE_IP:$REMOTE_PATH"
-  echo "Files copied successfully!"
+# Function to stop and remove existing containers
+cleanup_docker() {
+    echo "Cleaning up Docker containers..."
+    if [ "$IS_LOCAL" = true ]; then
+        docker-compose down --remove-orphans
+        docker system prune -f
+    else
+        docker-compose down --remove-orphans
+        docker system prune -f
+    fi
+    echo "Docker cleanup completed!"
 }
 
-#copy file, create a directory
-test_file(){
-    ssh $LINODE_SSH_USER@$LINODE_IP "mkdir -p $REMOTE_PATH"
-    if [ $? -eq 0 ]; then
-        echo "Created $REMOTE_PATH"
-    else
-        echo "Can't create $REMOTE_PATH in server, please check credentials"
-        exit 1
+# Add to Known Hosts (only needed for remote deployment)
+setup_ssh() {
+    if [ "$IS_LOCAL" = false ]; then
+        echo "Setting up SSH..."
+        mkdir -p ~/.ssh
+        ssh-keyscan $LINODE_IP >> ~/.ssh/known_hosts
     fi
 }
 
-# Function to run remote commands
-restart_docker(){
-  echo "Restarting Docker containers on Linode..."
-  ssh $LINODE_SSH_USER@$LINODE_IP 
-  ssh 
-  EOF
-    cd "$REMOTE_PATH"
-    docker-compose -f docker-compose.yml up --build -d
-  EOF
-  echo "Docker containers restarted successfully!"
+# Function to copy files
+copy_files() {
+    if [ "$IS_LOCAL" = false ]; then
+        echo "Copying files to Linode..."
+        scp -r "$LOCAL_PATH" "$LINODE_SSH_USER@$LINODE_IP:$REMOTE_PATH"
+        echo "Files copied successfully!"
+    fi
+}
+
+# Create remote directory if needed
+setup_remote_dir() {
+    if [ "$IS_LOCAL" = false ]; then
+        echo "Setting up remote directory..."
+        ssh $LINODE_SSH_USER@$LINODE_IP "mkdir -p $REMOTE_PATH"
+        if [ $? -eq 0 ]; then
+            echo "Created $REMOTE_PATH"
+        else
+            echo "Can't create $REMOTE_PATH in server, please check credentials"
+            exit 1
+        fi
+    fi
+}
+
+# Function to setup environment
+setup_env() {
+    if [ "$IS_LOCAL" = true ]; then
+        if [ -f .env.dev ]; then
+            echo "Using development environment file..."
+            cp .env.dev .env
+        else
+            echo "Warning: .env.dev file not found!"
+            exit 1
+        fi
+    else
+        echo "Using production environment file..."
+        if [ ! -f .env ]; then
+            echo "Error: Production .env file not found!"
+            exit 1
+        fi
+    fi
+}
+
+# Function to start Docker containers
+start_docker() {
+    echo "Starting Docker containers..."
+    docker-compose up --build -d
+    echo "Docker containers started successfully!"
 }
 
 deploy() {
-  test_file
-  copy_files
-  restart_docker
+    if [ "$IS_LOCAL" = true ]; then
+        echo "Running local deployment..."
+        setup_env
+    else
+        echo "Running production deployment..."
+    fi
+    
+    cleanup_docker
+    start_docker
+    echo "Deployment completed successfully!"
 }
 
 deploy
