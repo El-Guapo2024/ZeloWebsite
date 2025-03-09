@@ -32,22 +32,6 @@ jobs:
           rm: true
           strip_components: 0
 
-      - name: Setup Docker and permissions
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.LINODE_IP }}
-          username: ${{ secrets.LINODE_SSH_USER }}
-          key: ${{ secrets.LINODE_SSH_KEY }}
-          script: |
-            # Ensure Docker is running
-            sudo systemctl start docker || true
-            # Add current user to docker group if not already added
-            sudo usermod -aG docker $USER || true
-            # Make sure we can execute docker commands
-            sudo chmod 666 /var/run/docker.sock
-            # Create docker network if it doesn't exist
-            sudo docker network create flask_prod_network || true
-
       - name: Deploy application
         uses: appleboy/ssh-action@master
         with:
@@ -60,5 +44,6 @@ jobs:
             # Setup environment
             mv .env.prod .env
             chmod +x deploy.sh
-            # Run deployment with sudo to ensure permissions
-            sudo -E ./deploy.sh
+            # Run deployment
+            docker-compose down --remove-orphans || true
+            docker-compose up --build -d
