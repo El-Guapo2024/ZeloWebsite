@@ -43,3 +43,8 @@ jobs:
             mv .env.prod .env
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose down --remove-orphans || true
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up --build -d
+            # Check container status
+            echo "Checking container status..."
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker ps
+            echo "Checking container logs..."
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs --tail=50
