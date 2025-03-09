@@ -32,25 +32,6 @@ jobs:
           rm: true
           strip_components: 0
 
-      - name: Configure Docker on Linode
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.LINODE_IP }}
-          username: ${{ secrets.LINODE_SSH_USER }}
-          key: ${{ secrets.LINODE_SSH_KEY }}
-          script: |
-            # Create a temporary sudoers file
-            echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/temp_docker_setup
-            
-            # Now we can use sudo without password
-            sudo usermod -aG docker $USER
-            sudo chown root:docker /var/run/docker.sock
-            sudo chmod 666 /var/run/docker.sock
-            sudo systemctl restart docker
-            
-            # Remove the temporary sudoers file
-            sudo rm /etc/sudoers.d/temp_docker_setup
-
       - name: Deploy application
         uses: appleboy/ssh-action@master
         with:
@@ -58,16 +39,7 @@ jobs:
           username: ${{ secrets.LINODE_SSH_USER }}
           key: ${{ secrets.LINODE_SSH_KEY }}
           script: |
-            # Move to project directory
             cd /home/${{ secrets.LINODE_SSH_USER }}/zelo_website
-            
-            # Setup environment
             mv .env.prod .env
-            
-            # Wait for Docker to be ready
-            sleep 5
-            
-            # Try to use Docker directly (should work now with socket permissions)
-            docker ps >/dev/null 2>&1 || { echo "Docker is not accessible. Please check permissions."; exit 1; }
-            docker-compose down --remove-orphans || true
-            docker-compose up --build -d
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose down --remove-orphans || true
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up --build -d
