@@ -32,7 +32,7 @@ jobs:
           rm: true
           strip_components: 0
 
-      - name: Setup Docker permissions and deploy
+      - name: Setup Docker and permissions
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.LINODE_IP }}
@@ -43,14 +43,22 @@ jobs:
             sudo systemctl start docker || true
             # Add current user to docker group if not already added
             sudo usermod -aG docker $USER || true
+            # Make sure we can execute docker commands
+            sudo chmod 666 /var/run/docker.sock
             # Create docker network if it doesn't exist
-            docker network create flask_prod_network || true
+            sudo docker network create flask_prod_network || true
+
+      - name: Deploy application
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.LINODE_IP }}
+          username: ${{ secrets.LINODE_SSH_USER }}
+          key: ${{ secrets.LINODE_SSH_KEY }}
+          script: |
             # Move to project directory
             cd /home/${{ secrets.LINODE_SSH_USER }}/zelo_website
             # Setup environment
             mv .env.prod .env
             chmod +x deploy.sh
-            # Make sure we can execute docker commands
-            sudo chmod 666 /var/run/docker.sock
-            # Run deployment
-            ./deploy.sh
+            # Run deployment with sudo to ensure permissions
+            sudo -E ./deploy.sh
