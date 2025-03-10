@@ -32,34 +32,53 @@ jobs:
           rm: true
           strip_components: 0
 
-      - name: Deploy and check status
+      - name: Setup server and deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.LINODE_IP }}
           username: ${{ secrets.LINODE_SSH_USER }}
           key: ${{ secrets.LINODE_SSH_KEY }}
           script: |
+            # Install necessary tools
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S apt-get update
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S apt-get install -y net-tools curl
+
+            # Configure firewall
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw allow 80/tcp
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw allow 443/tcp
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw --force enable
+
+            # Move to project directory and setup
             cd /home/${{ secrets.LINODE_SSH_USER }}/zelo_website
             mv .env.prod .env
+            
+            # Stop and remove existing containers
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose down --remove-orphans || true
+            
+            # Clean up Docker system
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker system prune -f
+            
+            # Start new containers
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up --build -d
             
-            # Check container status
-            echo "Checking container status..."
+            # Wait for containers to be ready
+            sleep 10
+            
+            # Check status
+            echo "=== Docker Containers ==="
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker ps
             
-            # Check container logs
-            echo "Checking container logs..."
+            echo "=== Container Logs ==="
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs --tail=50
             
-            # Check firewall status
-            echo "Checking firewall status..."
+            echo "=== Firewall Status ==="
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw status
             
-            # Check if port 80 is listening
-            echo "Checking port 80..."
+            echo "=== Port 80 Status ==="
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S netstat -tulpn | grep :80
             
-            # Test local connection
-            echo "Testing local connection..."
-            curl -v http://localhost:80
+            echo "=== Testing Local Connection ==="
+            curl -v localhost:80
+            
+            echo "=== Testing External Connection ==="
+            curl -v http://${{ secrets.LINODE_IP }}
