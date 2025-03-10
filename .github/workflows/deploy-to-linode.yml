@@ -32,7 +32,7 @@ jobs:
           rm: true
           strip_components: 0
 
-      - name: Deploy application
+      - name: Deploy and check status
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.LINODE_IP }}
@@ -43,8 +43,23 @@ jobs:
             mv .env.prod .env
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose down --remove-orphans || true
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up --build -d
+            
             # Check container status
             echo "Checking container status..."
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker ps
+            
+            # Check container logs
             echo "Checking container logs..."
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs --tail=50
+            
+            # Check firewall status
+            echo "Checking firewall status..."
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw status
+            
+            # Check if port 80 is listening
+            echo "Checking port 80..."
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S netstat -tulpn | grep :80
+            
+            # Test local connection
+            echo "Testing local connection..."
+            curl -v http://localhost:80
