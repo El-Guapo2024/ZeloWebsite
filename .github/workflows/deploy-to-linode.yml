@@ -81,19 +81,28 @@ jobs:
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw status verbose
             
             echo "=== Port 80 Status ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S netstat -tulpn | grep :80
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S netstat -tulpn | grep :80 || true
             
             echo "=== Docker Network Status ==="
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker network ls
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker network inspect zelo_website_flask_prod_network
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker network inspect zelo_website_flask_prod_network || true
             
-            echo "=== Testing Local Connection ==="
-            curl -v localhost:80
+            echo "=== Web Container Details ==="
+            WEB_CONTAINER=$(echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps -q web_prod)
+            echo "Container ID: $WEB_CONTAINER"
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect $WEB_CONTAINER
+            
+            echo "=== Testing Local Connection from inside container ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec $WEB_CONTAINER curl -v http://localhost:5000
             
             echo "=== Testing External Connection ==="
-            curl -v http://${{ secrets.LINODE_IP }}
+            curl -v http://localhost:80
             
-            echo "=== Container Health Check ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps
-            echo "=== Web Container Logs ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs web_prod
+            echo "=== Application Logs ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs web_prod --tail=100
+            
+            echo "=== Process List Inside Container ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec $WEB_CONTAINER ps aux
+            
+            echo "=== Network Inside Container ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec $WEB_CONTAINER netstat -tulpn
