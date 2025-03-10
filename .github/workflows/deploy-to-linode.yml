@@ -39,30 +39,36 @@ jobs:
           username: ${{ secrets.LINODE_SSH_USER }}
           key: ${{ secrets.LINODE_SSH_KEY }}
           script: |
-            # Install necessary tools
+            # Install necessary tools first
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S apt-get update
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S apt-get install -y net-tools curl
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S apt-get install -y net-tools curl ufw
 
             # Configure firewall
+            echo "Setting up firewall rules..."
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw allow 80/tcp
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw allow 443/tcp
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw --force enable
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw status verbose
 
             # Move to project directory and setup
             cd /home/${{ secrets.LINODE_SSH_USER }}/zelo_website
             mv .env.prod .env
             
             # Stop and remove existing containers
+            echo "Stopping existing containers..."
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose down --remove-orphans || true
             
             # Clean up Docker system
+            echo "Cleaning Docker system..."
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker system prune -f
             
             # Start new containers
+            echo "Starting containers..."
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up --build -d
             
             # Wait for containers to be ready
-            sleep 10
+            echo "Waiting for containers to initialize..."
+            sleep 15
             
             # Check status
             echo "=== Docker Containers ==="
@@ -72,13 +78,22 @@ jobs:
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs --tail=50
             
             echo "=== Firewall Status ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw status
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw status verbose
             
             echo "=== Port 80 Status ==="
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S netstat -tulpn | grep :80
+            
+            echo "=== Docker Network Status ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker network ls
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker network inspect zelo_website_flask_prod_network
             
             echo "=== Testing Local Connection ==="
             curl -v localhost:80
             
             echo "=== Testing External Connection ==="
             curl -v http://${{ secrets.LINODE_IP }}
+            
+            echo "=== Container Health Check ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps
+            echo "=== Web Container Logs ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs web_prod
