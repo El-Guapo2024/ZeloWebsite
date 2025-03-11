@@ -15,14 +15,25 @@ jobs:
 
       - name: Create production env file
         run: |
+          # Debug: Print environment variables (excluding sensitive data)
+          echo "Creating environment file with these variables:"
+          echo "POSTGRES_USER: $POSTGRES_USER"
+          echo "POSTGRES_DB: $POSTGRES_DB"
+          echo "FLASK_ENV: production"
+          
           # Create the database URL with explicit credentials
           DB_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_prod:5432/${POSTGRES_DB}"
           echo "DATABASE_URL=$DB_URL" > .env.prod
+          echo "SQLALCHEMY_DATABASE_URI=$DB_URL" >> .env.prod
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env.prod
           echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env.prod
           echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env.prod
           echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env.prod
           echo "FLASK_ENV=production" >> .env.prod
+          
+          # Debug: Verify file contents (excluding sensitive data)
+          echo "Environment file created. Contents (excluding sensitive data):"
+          grep -v "PASSWORD\|KEY" .env.prod || true
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -97,17 +108,21 @@ jobs:
               sleep 2
             done
             
-            # Print environment variables (excluding sensitive data)
-            echo "=== Environment Variables ==="
+            # Debug database configuration
+            echo "=== Database Configuration ==="
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec db_prod env | grep -v "PASSWORD" || true
-            
-            # Check database container status
-            echo "=== Database Container Status ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs db_prod
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec db_prod psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\l" || true
             
             # Start web container with production environment
             echo "Starting web container..."
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up -d web_prod
+            
+            # Debug web container environment
+            echo "=== Web Container Environment ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec web_prod env | grep -v "PASSWORD" || true
+            echo "=== Web Container Database URL ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec web_prod python -c "import os; print(f'DATABASE_URL: {os.getenv(\"DATABASE_URL\")}')" || true
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec web_prod python -c "import os; print(f'SQLALCHEMY_DATABASE_URI: {os.getenv(\"SQLALCHEMY_DATABASE_URI\")}')" || true
             
             # Follow web container logs in real-time for 30 seconds
             echo "=== Web Container Startup Logs ==="
@@ -128,16 +143,6 @@ jobs:
               echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect "$WEB_CONTAINER" --format '{{.State.Error}}'
               exit 1
             fi
-            
-            # If container is running, check its health
-            echo "=== Container Health Check ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect "$WEB_CONTAINER" --format '{{.State.Health}}'
-            
-            echo "=== Process List Inside Container ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec "$WEB_CONTAINER" ps aux || true
-            
-            echo "=== Testing Application ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec "$WEB_CONTAINER" curl -v http://localhost:5000 || true
             
             echo "=== Final Container Status ==="
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps
