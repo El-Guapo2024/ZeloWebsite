@@ -15,11 +15,18 @@ jobs:
 
       - name: Create production env file
         run: |
-          echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db_prod:5432/${{ secrets.POSTGRES_DB }}" > .env.prod
+          # Create the database URL with explicit credentials
+          DB_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_prod:5432/${POSTGRES_DB}"
+          echo "DATABASE_URL=$DB_URL" > .env.prod
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env.prod
           echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env.prod
           echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env.prod
           echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env.prod
+          echo "FLASK_ENV=production" >> .env.prod
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
 
       - name: Setup SSH key
         run: |
@@ -50,7 +57,7 @@ jobs:
           script: |
             # Install necessary tools first
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S apt-get update
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S apt-get install -y net-tools curl ufw
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S apt-get install -y net-tools curl ufw postgresql-client
 
             # Configure firewall
             echo "Setting up firewall rules..."
@@ -81,13 +88,24 @@ jobs:
             
             # Wait for database to be ready
             echo "Waiting for database to be ready..."
-            sleep 10
+            for i in {1..30}; do
+              if echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec -T db_prod pg_isready -h localhost; then
+                echo "Database is ready!"
+                break
+              fi
+              echo "Waiting for database to be ready... attempt $i"
+              sleep 2
+            done
+            
+            # Print environment variables (excluding sensitive data)
+            echo "=== Environment Variables ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec db_prod env | grep -v "PASSWORD" || true
             
             # Check database container status
             echo "=== Database Container Status ==="
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs db_prod
             
-            # Start web container
+            # Start web container with production environment
             echo "Starting web container..."
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up -d web_prod
             
