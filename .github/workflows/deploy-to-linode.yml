@@ -71,67 +71,55 @@ jobs:
             echo "Cleaning Docker system..."
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker system prune -f
             
-            # Start new containers with immediate log checking
-            echo "Starting containers..."
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up --build -d
+            # Build images first to check for build errors
+            echo "Building images..."
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose build
             
-            # Immediate check for container status
-            echo "=== Immediate Container Status ==="
+            # Start database container first
+            echo "Starting database container..."
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up -d db_prod
+            
+            # Wait for database to be ready
+            echo "Waiting for database to be ready..."
+            sleep 10
+            
+            # Check database container status
+            echo "=== Database Container Status ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs db_prod
+            
+            # Start web container
+            echo "Starting web container..."
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up -d web_prod
+            
+            # Follow web container logs in real-time for 30 seconds
+            echo "=== Web Container Startup Logs ==="
+            timeout 30 echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs -f web_prod || true
+            
+            # Check container status
+            echo "=== Container Status ==="
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps
             
-            # Check logs immediately for any startup errors
-            echo "=== Initial Container Logs ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs
-            
-            # Wait and check if containers are still running
-            echo "Waiting to verify container stability..."
-            sleep 5
-            
-            echo "=== Container Status After Delay ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps
-            
-            # If web container is not running, show recent logs
-            if ! echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps | grep -q "Up" ; then
-              echo "=== Container Failed to Start - Showing Detailed Logs ==="
-              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs --tail=100
-              echo "=== Failed Container Inspection ==="
-              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps -a
-              exit 1
-            fi
-            
-            # If containers are running, continue with tests
-            echo "=== Docker Containers ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker ps
-            
-            echo "=== Container Logs ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs --tail=50
-            
-            echo "=== Firewall Status ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S ufw status verbose
-            
-            echo "=== Port 80 Status ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S netstat -tulpn | grep :80 || true
-            
-            echo "=== Docker Network Status ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker network ls
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker network inspect zelo_website_flask_prod_network || true
-            
-            # Only proceed with container tests if the container is running
+            # Get web container logs if it failed
             WEB_CONTAINER=$(echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps -q web_prod)
-            if [ ! -z "$WEB_CONTAINER" ]; then
-              echo "=== Web Container Details ==="
-              echo "Container ID: $WEB_CONTAINER"
-              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect $WEB_CONTAINER
-              
-              echo "=== Testing Local Connection from inside container ==="
-              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec $WEB_CONTAINER curl -v http://localhost:5000 || true
-              
-              echo "=== Process List Inside Container ==="
-              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec $WEB_CONTAINER ps aux || true
-              
-              echo "=== Network Inside Container ==="
-              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec $WEB_CONTAINER netstat -tulpn || true
-            else
-              echo "Web container is not running - skipping container tests"
+            if [ -z "$WEB_CONTAINER" ] || ! echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect "$WEB_CONTAINER" --format '{{.State.Running}}' | grep -q "true"; then
+              echo "=== Web Container Failed - Showing Logs ==="
+              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs web_prod
+              echo "=== Container Exit Code ==="
+              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect "$WEB_CONTAINER" --format '{{.State.ExitCode}}'
+              echo "=== Container Error Log ==="
+              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect "$WEB_CONTAINER" --format '{{.State.Error}}'
               exit 1
             fi
+            
+            # If container is running, check its health
+            echo "=== Container Health Check ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect "$WEB_CONTAINER" --format '{{.State.Health}}'
+            
+            echo "=== Process List Inside Container ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec "$WEB_CONTAINER" ps aux || true
+            
+            echo "=== Testing Application ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec "$WEB_CONTAINER" curl -v http://localhost:5000 || true
+            
+            echo "=== Final Container Status ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps
