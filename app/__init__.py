@@ -6,40 +6,54 @@ from flask_caching import Cache
 from app.cache_manager import CacheManager
 from app.db import DatabaseManager
 import os 
+from dotenv import load_dotenv
+
 # Import the database manager
 from app.db import DatabaseManager
 from app.models import Base # Import your Base model
 
-#Applicatin Factory
+# Application Factory
 def create_app():
-    app = Flask(__name__)
-    if os.getenv('FLASK_ENV') == 'development':
-        app.config.from_object('app.config.DevelopmentConfig')
-    elif os.getenv('FLASK_ENV') == 'production':
-        app.config.from_object('app.config.ProductionConfig')
-    else:
-        print("No environment set. Defaulting to Development")
-        app.config.from_object('app.config.DevelopmentConfig')
+    # Load environment variables from .env file
+    load_dotenv()
     
-    # Initialize the Database Manager
-    db_manager = DatabaseManager(app)
-    app.db_manager = db_manager
+    app = Flask(__name__)
+    
+    # Force production config when FLASK_ENV is set to production
+    if os.getenv('FLASK_ENV') == 'production':
+        app.config.from_object('app.config.ProductionConfig')
+        print("Using Production Configuration")
+    else:
+        app.config.from_object('app.config.DevelopmentConfig')
+        print("Using Development Configuration")
+    
+    try:
+        # Initialize the Database Manager
+        db_manager = DatabaseManager(app)
+        app.db_manager = db_manager
+        print(f"Database URL: {app.config['SQLALCHEMY_DATABASE_URI']}")
+    except Exception as e:
+        print(f"Error initializing database: {str(e)}")
+        raise
 
     # Initialize the cache
-    app.config['CACHE_TYPE'] = "SimpleCache" # Use "FileSystemCache" for file-based caching
-    app.config['CACHE_DEFAULT_TIMEOUT'] = 300 # Cache timeout in seconds (optional)
+    app.config['CACHE_TYPE'] = "SimpleCache"
+    app.config['CACHE_DEFAULT_TIMEOUT'] = 300
     cache = Cache(app)
     cache_manager = CacheManager(cache)
     app.cache_manager = cache_manager
 
-    # Load configuration for MQTT 
-    config = load_config("app/config.yaml")
-    # Initialize and start MQTT thread
-    mqtt_subcriber = MQTTSubscriber(config)
-    mqtt_subcriber.start()
-
-    # Attach the MQTT thread to the app for global access
-    app.mqtt_subscriber= mqtt_subcriber
+    try:
+        # Load configuration for MQTT 
+        config = load_config("app/config.yaml")
+        # Initialize and start MQTT thread
+        mqtt_subcriber = MQTTSubscriber(config)
+        mqtt_subcriber.start()
+        # Attach the MQTT thread to the app for global access
+        app.mqtt_subscriber = mqtt_subcriber
+    except Exception as e:
+        print(f"Error initializing MQTT: {str(e)}")
+        # Don't raise here as MQTT is not critical for the app to run
 
     # Import routes and register them (after app is created)
     from app.routes import bike_routes
