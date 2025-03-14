@@ -15,29 +15,29 @@ jobs:
 
       - name: Create production env file
         run: |
-          # Debug: Print environment variables (excluding sensitive data)
-          echo "Creating environment file with these variables:"
-          echo "POSTGRES_USER: $POSTGRES_USER"
-          echo "POSTGRES_DB: $POSTGRES_DB"
-          echo "FLASK_ENV: production"
-          
           # Create the database URL with explicit credentials
-          DB_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_prod:5432/${POSTGRES_DB}"
-          echo "DATABASE_URL=$DB_URL" > .env.prod
-          echo "SQLALCHEMY_DATABASE_URI=$DB_URL" >> .env.prod
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env.prod
-          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env.prod
-          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env.prod
-          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env.prod
-          echo "FLASK_ENV=production" >> .env.prod
+
+          # Create the environment file with all necessary variables
+          cat > .env.prod << EOL
+          # Flask Configuration
+          FLASK_ENV=production
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+
+          # Database Configuration
+          POSTGRES_USER=${{secrets.POSTGRES_USER}}
+          POSTGRES_PASSWORD=${{secrets.POSTGRES_PASSWORD}}
+          POSTGRES_DB=${{secrets.POSTGRES_DB}}
+
+          # Database URL (full URL, not using variable substitution)
+          DATABASE_URL=postgresql://${{secrets.POSTGRES_USER}}:${{secrets.POSTGRES_PASSWORD}}@db_prod:5432/${{secrets.POSTGRES_DB}}
+
+          # Database Host
+          DB_HOST=db_prod
+          EOL
           
           # Debug: Verify file contents (excluding sensitive data)
           echo "Environment file created. Contents (excluding sensitive data):"
           grep -v "PASSWORD\|KEY" .env.prod || true
-        env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
 
       - name: Setup SSH key
         run: |
@@ -79,28 +79,35 @@ jobs:
 
             # Move to project directory and setup
             cd /home/${{ secrets.LINODE_SSH_USER }}/zelo_website
-            mv .env.prod .env
             
             # Stop and remove existing containers
             echo "Stopping existing containers..."
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose down --remove-orphans || true
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker stop zelo_web_prod zelo_db_prod || true
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker rm zelo_web_prod zelo_db_prod || true
             
             # Clean up Docker system
             echo "Cleaning Docker system..."
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker system prune -f
             
-            # Build images first to check for build errors
-            echo "Building images..."
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose build
+            # Create Docker network
+            echo "Creating Docker network..."
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker network create zelo_network || true
             
-            # Start database container first
+            # Start PostgreSQL container
             echo "Starting database container..."
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up -d db_prod
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker run -d \
+              --name zelo_db_prod \
+              --network zelo_network \
+              -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+              -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+              -e POSTGRES_DB=${{ secrets.POSTGRES_DB }} \
+              -v postgres_data:/var/lib/postgresql/data \
+              postgres:15
             
             # Wait for database to be ready
             echo "Waiting for database to be ready..."
             for i in {1..30}; do
-              if echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec -T db_prod pg_isready -h localhost; then
+              if echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker exec -t zelo_db_prod pg_isready -h localhost; then
                 echo "Database is ready!"
                 break
               fi
@@ -108,41 +115,28 @@ jobs:
               sleep 2
             done
             
-            # Debug database configuration
-            echo "=== Database Configuration ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec db_prod env | grep -v "PASSWORD" || true
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec db_prod psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\l" || true
+            # Build and start web container
+            echo "Building and starting web container..."
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker build -t zelo_web .
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker run -d \
+              --name zelo_web_prod \
+              --network zelo_network \
+              -p 80:5000 \
+              -e FLASK_ENV=production \
+              -e SECRET_KEY=${{ secrets.SECRET_KEY }} \
+              -e DATABASE_URL="postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@zelo_db_prod:5432/${{ secrets.POSTGRES_DB }}" \
+              -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+              -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+              -e POSTGRES_DB=${{ secrets.POSTGRES_DB }} \
+              zelo_web
             
-            # Start web container with production environment
-            echo "Starting web container..."
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose up -d web_prod
+            # Debug: Check container logs
+            echo "=== Database Container Logs ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker logs zelo_db_prod
             
-            # Debug web container environment
-            echo "=== Web Container Environment ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec web_prod env | grep -v "PASSWORD" || true
-            echo "=== Web Container Database URL ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec web_prod python -c "import os; print(f'DATABASE_URL: {os.getenv(\"DATABASE_URL\")}')" || true
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose exec web_prod python -c "import os; print(f'SQLALCHEMY_DATABASE_URI: {os.getenv(\"SQLALCHEMY_DATABASE_URI\")}')" || true
-            
-            # Follow web container logs in real-time for 30 seconds
-            echo "=== Web Container Startup Logs ==="
-            timeout 30 echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs -f web_prod || true
+            echo "=== Web Container Logs ==="
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker logs zelo_web_prod
             
             # Check container status
             echo "=== Container Status ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps
-            
-            # Get web container logs if it failed
-            WEB_CONTAINER=$(echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps -q web_prod)
-            if [ -z "$WEB_CONTAINER" ] || ! echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect "$WEB_CONTAINER" --format '{{.State.Running}}' | grep -q "true"; then
-              echo "=== Web Container Failed - Showing Logs ==="
-              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose logs web_prod
-              echo "=== Container Exit Code ==="
-              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect "$WEB_CONTAINER" --format '{{.State.ExitCode}}'
-              echo "=== Container Error Log ==="
-              echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker inspect "$WEB_CONTAINER" --format '{{.State.Error}}'
-              exit 1
-            fi
-            
-            echo "=== Final Container Status ==="
-            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker-compose ps
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker ps -a
