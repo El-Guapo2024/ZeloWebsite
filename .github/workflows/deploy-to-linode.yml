@@ -13,32 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Create production env file
-        run: |
-          # Create the database URL with explicit credentials
-
-          # Create the environment file with all necessary variables
-          cat > .env.prod << EOL
-          # Flask Configuration
-          FLASK_ENV=production
-          SECRET_KEY=${{ secrets.SECRET_KEY }}
-
-          # Database Configuration
-          POSTGRES_USER=${{secrets.POSTGRES_USER}}
-          POSTGRES_PASSWORD=${{secrets.POSTGRES_PASSWORD}}
-          POSTGRES_DB=${{secrets.POSTGRES_DB}}
-
-          # Database URL (full URL, not using variable substitution)
-          DATABASE_URL=postgresql://${{secrets.POSTGRES_USER}}:${{secrets.POSTGRES_PASSWORD}}@db_prod:5432/${{secrets.POSTGRES_DB}}
-
-          # Database Host
-          DB_HOST=db_prod
-          EOL
-          
-          # Debug: Verify file contents (excluding sensitive data)
-          echo "Environment file created. Contents (excluding sensitive data):"
-          grep -v "PASSWORD\|KEY" .env.prod || true
-
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh

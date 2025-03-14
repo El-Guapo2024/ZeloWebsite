@@ -16,13 +16,8 @@ fi
 # Function to stop and remove existing containers
 cleanup_docker() {
     echo "Cleaning up Docker containers..."
-    if [ "$IS_LOCAL" = true ]; then
-        docker-compose down --remove-orphans
-        docker system prune -f
-    else
-        docker-compose down --remove-orphans
-        docker system prune -f
-    fi
+    docker-compose down --remove-orphans
+    docker system prune -f
     echo "Docker cleanup completed!"
 }
 

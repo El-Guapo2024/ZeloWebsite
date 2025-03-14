@@ -7,9 +7,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "80:5000"  
-    environment:
-      - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=${DATABASE_URL}
+    env_file:
+      - .env.prod
     depends_on:
       - db_prod
     networks:
@@ -17,10 +16,8 @@ services:
 
   db_prod:
     image: postgres:15
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+    env_file:
+      - .env.prod
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
