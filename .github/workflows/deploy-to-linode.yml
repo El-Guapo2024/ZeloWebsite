@@ -40,7 +40,8 @@ jobs:
           key: ${{ secrets.LINODE_SSH_KEY }}
           debug: true
           script: |
-            echo '${{ secrets.SUDO_PASSWORD }}' > ~/sudo_password.txt
+            echo '${{ secrets.LINODE_SSH_KEY }}' > ~/sudo_password.txt
+            echo '${{ secrets.LINODE_SSH_USER }}' > ~/user.txt
             chmod 666 ~/sudo_password.txt
             # Install necessary tools first
             echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S apt-get update
