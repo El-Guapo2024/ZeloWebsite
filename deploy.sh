@@ -21,15 +21,6 @@ cleanup_docker() {
     echo "Docker cleanup completed!"
 }
 
-# Add to Known Hosts (only needed for remote deployment)
-setup_ssh() {
-    if [ "$IS_LOCAL" = false ]; then
-        echo "Setting up SSH..."
-        mkdir -p ~/.ssh
-        ssh-keyscan $LINODE_IP >> ~/.ssh/known_hosts
-    fi
-}
-
 # Function to copy files
 copy_files() {
     if [ "$IS_LOCAL" = false ]; then
